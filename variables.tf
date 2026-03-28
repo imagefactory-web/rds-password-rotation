@@ -31,7 +31,7 @@ variable "rds_database_name" {
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "1.28"
+  default     = "1.35"
 }
 
 variable "rotation_schedule" {
