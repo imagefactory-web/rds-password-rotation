@@ -99,7 +99,7 @@ resource "aws_iam_role_policy" "lambda" {
           "rds:ModifyDBInstance",
           "rds:DescribeDBInstances"
         ]
-        Resource = aws_db_instance.main.arn
+        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -113,9 +113,23 @@ resource "aws_iam_role_policy" "lambda" {
         Effect = "Allow"
         Action = [
           "kms:Encrypt",
-          "kms:Decrypt"
+          "kms:Decrypt",
+          "kms:CreateGrant",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey"
         ]
         Resource = aws_kms_key.ssm.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:CreateGrant",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey"
+        ]
+        Resource = aws_kms_key.rds.arn
       }
     ]
   })

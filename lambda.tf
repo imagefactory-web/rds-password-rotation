@@ -17,7 +17,7 @@ resource "aws_lambda_function" "rotation" {
 
   environment {
     variables = {
-      RDS_INSTANCE_ID    = aws_db_instance.main.id
+      RDS_INSTANCE_ID    = aws_db_instance.main.identifier
       RDS_USERNAME       = var.rds_master_username
       SSM_PARAMETER_PATH = "/${var.project_name}/rds-password"
     }
