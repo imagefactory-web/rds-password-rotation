@@ -19,39 +19,48 @@ graph TB
             subgraph "Public Subnets"
                 NAT["NAT Gateway"]
             end
+
             subgraph "Private Subnets"
                 EKS["EKS Cluster"]
                 RDS[("RDS MySQL<br/>Instance")]
             end
         end
-        
+
         EB["EventBridge<br/>Scheduler"]
         Lambda["Lambda Function<br/>Password Rotation"]
-        SM["AWS Secrets Manager<br/>RDS Password"]
+        SSM["AWS SSM Parameter Store<br/>SecureString RDS Password"]
         IAM["IAM Roles &<br/>Policies"]
+        OIDC["EKS OIDC Provider<br/>IRSA"]
     end
-    
+
     subgraph "EKS Cluster Components"
         ESO["External Secrets<br/>Operator"]
         Reloader["Stakater<br/>Reloader"]
-        App["Example<br/>Application"]
+        App["Example Application<br/>Secret Consumer"]
+        K8SSecret["Kubernetes Secret<br/>RDS Credentials"]
     end
-    
+
     EB -->|Triggers| Lambda
-    Lambda -->|Updates Secret| SM
-    Lambda -->|Rotates Password| RDS
-    SM -->|Syncs| ESO
-    ESO -->|Creates K8s Secret| Reloader
-    Reloader -->|Reloads| App
-    App -->|Connects| RDS
-    IAM -.->|Grants Permissions| Lambda
-    IAM -.->|Grants Permissions| ESO
-    
+    Lambda -->|ModifyDBInstance API<br/>Rotates Password| RDS
+    Lambda -->|Updates SecureString| SSM
+
+    SSM -->|Syncs every 5 min| ESO
+    ESO -->|Creates / Updates| K8SSecret
+    K8SSecret -->|Secret Change Detected| Reloader
+    Reloader -->|Restarts Pods| App
+    App -->|Connects using new password| RDS
+
+    IAM -.->|Grants Lambda Permissions| Lambda
+    IAM -.->|Grants EventBridge Invoke Permission| EB
+    IAM -.->|Creates IRSA Role| OIDC
+    OIDC -.->|AssumeRoleWithWebIdentity| ESO
+
     style EKS fill:#FF9900,stroke:#333,color:#fff
     style RDS fill:#527FFF,stroke:#333,color:#fff
     style Lambda fill:#FF9900,stroke:#333,color:#fff
-    style SM fill:#527FFF,stroke:#333,color:#fff
+    style SSM fill:#527FFF,stroke:#333,color:#fff
     style EB fill:#FF9900,stroke:#333,color:#fff
+    style K8SSecret fill:#7B68EE,stroke:#333,color:#fff
 ```
 
 ## Prerequisites
