@@ -21,32 +21,35 @@ graph TB
             end
             subgraph "Private Subnets"
                 EKS["EKS Cluster"]
-                RDS[("RDS MySQL<br/>Instance")]
+                RDS[("RDS MySQL Instance")]
             end
         end
-        
-        EB["EventBridge<br/>Scheduler"]
-        Lambda["Lambda Function<br/>Password Rotation"]
-        SM["AWS Secrets Manager<br/>RDS Password"]
-        IAM["IAM Roles &<br/>Policies"]
+
+        EB["EventBridge Scheduler"]
+        Lambda["Lambda Function Password Rotation"]
+        SM["AWS Secrets Manager RDS Credentials"]
+        IAM["IAM Roles & Policies"]
+        OIDC["EKS OIDC Provider / IRSA"]
     end
-    
+
     subgraph "EKS Cluster Components"
-        ESO["External Secrets<br/>Operator"]
-        Reloader["Stakater<br/>Reloader"]
-        App["Example<br/>Application"]
+        ESO["External Secrets Operator"]
+        Reloader["Stakater Reloader"]
+        App["Example Application"]
     end
-    
+
     EB -->|Triggers| Lambda
-    Lambda -->|Updates Secret| SM
-    Lambda -->|Rotates Password| RDS
-    SM -->|Syncs| ESO
+    Lambda -->|ModifyDBInstance API| RDS
+    Lambda -->|Updates Secret JSON| SM
+    SM -->|Syncs username/password/host| ESO
     ESO -->|Creates K8s Secret| Reloader
-    Reloader -->|Reloads| App
+    Reloader -->|Reloads Pods| App
     App -->|Connects| RDS
-    IAM -.->|Grants Permissions| Lambda
-    IAM -.->|Grants Permissions| ESO
-    
+
+    IAM -.->|Grants Lambda permissions| Lambda
+    IAM -.->|Grants ESO permissions| OIDC
+    OIDC -.->|IRSA Role| ESO
+
     style EKS fill:#FF9900,stroke:#333,color:#fff
     style RDS fill:#527FFF,stroke:#333,color:#fff
     style Lambda fill:#FF9900,stroke:#333,color:#fff

@@ -15,11 +15,12 @@ resource "aws_lambda_function" "rotation" {
   timeout          = 300
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
-  environment {
-    variables = {
-      RDS_INSTANCE_ID    = aws_db_instance.main.identifier
-      RDS_USERNAME       = var.rds_master_username
-      SSM_PARAMETER_PATH = "/${var.project_name}/rds-password"
-    }
+environment {
+  variables = {
+    RDS_INSTANCE_ID = aws_db_instance.main.identifier
+    RDS_USERNAME    = var.rds_master_username
+    RDS_HOST        = aws_db_instance.main.address
+    SECRET_ID       = aws_secretsmanager_secret.rds_credentials.name
   }
+}
 }

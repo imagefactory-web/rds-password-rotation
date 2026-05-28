@@ -104,10 +104,12 @@ resource "aws_iam_role_policy" "lambda" {
       {
         Effect = "Allow"
         Action = [
-          "ssm:PutParameter",
-          "ssm:GetParameter"
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:PutSecretValue",
+          "secretsmanager:UpdateSecret",
+          "secretsmanager:DescribeSecret"
         ]
-        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${var.project_name}/*"
+        Resource = aws_secretsmanager_secret.rds_credentials.arn
       },
       {
         Effect = "Allow"
@@ -118,7 +120,7 @@ resource "aws_iam_role_policy" "lambda" {
           "kms:DescribeKey",
           "kms:GenerateDataKey"
         ]
-        Resource = aws_kms_key.ssm.arn
+        Resource = aws_kms_key.secretsmanager.arn
       },
       {
         Effect = "Allow"
@@ -135,7 +137,7 @@ resource "aws_iam_role_policy" "lambda" {
   })
 }
 
-# IAM Role for EventBridge
+# IAM Role for EventBridge Scheduler
 resource "aws_iam_role" "eventbridge" {
   name = "${var.project_name}-eventbridge-role"
 
@@ -180,7 +182,7 @@ data "tls_certificate" "eks" {
   url = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
-# IAM Role for External Secrets
+# IAM Role for External Secrets Operator using IRSA
 resource "aws_iam_role" "external_secrets" {
   name = "${var.project_name}-external-secrets"
 
@@ -195,7 +197,8 @@ resource "aws_iam_role" "external_secrets" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:external-secrets:external-secrets-sa"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:external-secrets:external-secrets-sa",
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
           }
         }
       }
@@ -214,15 +217,18 @@ resource "aws_iam_policy" "external_secrets" {
       {
         Effect = "Allow"
         Action = [
-          "ssm:GetParameter",
-          "ssm:GetParameters"
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
         ]
-        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${var.project_name}/*"
+        Resource = aws_secretsmanager_secret.rds_credentials.arn
       },
       {
-        Effect   = "Allow"
-        Action   = ["kms:Decrypt"]
-        Resource = aws_kms_key.ssm.arn
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey"
+        ]
+        Resource = aws_kms_key.secretsmanager.arn
       }
     ]
   })

@@ -40,7 +40,7 @@ resource "kubectl_manifest" "cluster_secret_store" {
     spec:
       provider:
         aws:
-          service: ParameterStore
+          service: SecretsManager
           region: ${var.aws_region}
           auth:
             jwt:
@@ -57,7 +57,7 @@ resource "kubectl_manifest" "cluster_secret_store" {
 
 resource "kubectl_manifest" "external_secret" {
   depends_on = [kubectl_manifest.cluster_secret_store]
-  
+
   yaml_body = <<-EOF
     apiVersion: external-secrets.io/v1beta1
     kind: ExternalSecret
@@ -74,15 +74,18 @@ resource "kubectl_manifest" "external_secret" {
       data:
       - secretKey: username
         remoteRef:
-          key: /myapp/rds-username
+          key: /${var.project_name}/rds-credentials
+          property: username
       - secretKey: password
         remoteRef:
-          key: /myapp/rds-password
+          key: /${var.project_name}/rds-credentials
+          property: password
       - secretKey: host
         remoteRef:
-          key: /myapp/rds-host
+          key: /${var.project_name}/rds-credentials
+          property: host
   EOF
-  
+
   timeouts {
     create = "2m"
   }
