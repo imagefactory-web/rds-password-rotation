@@ -33,9 +33,14 @@ output "lambda_function_name" {
   value       = aws_lambda_function.rotation.function_name
 }
 
-output "ssm_parameter_path" {
-  description = "SSM parameter path"
-  value       = aws_ssm_parameter.rds_password.name
+output "secretsmanager_secret_name" {
+  description = "Secrets Manager secret name for RDS credentials"
+  value       = aws_secretsmanager_secret.rds_credentials.name
+}
+
+output "secretsmanager_secret_arn" {
+  description = "Secrets Manager secret ARN for RDS credentials"
+  value       = aws_secretsmanager_secret.rds_credentials.arn
 }
 
 output "kubectl_config_command" {
@@ -45,10 +50,15 @@ output "kubectl_config_command" {
 
 output "test_rotation_command" {
   description = "Command to test password rotation"
-  value       = "aws lambda invoke --function-name ${aws_lambda_function.rotation.function_name} --payload '{}' response.json"
+  value       = "aws lambda invoke --function-name ${aws_lambda_function.rotation.function_name} --cli-binary-format raw-in-base64-out --payload '{}' --region ${var.aws_region} response.json"
 }
 
 output "check_secret_command" {
   description = "Command to check secret in Kubernetes"
   value       = "kubectl get secret ${var.kubernetes_secret_name} -n ${var.kubernetes_namespace}"
+}
+
+output "check_aws_secret_command" {
+  description = "Command to check RDS credentials in AWS Secrets Manager"
+  value       = "aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret.rds_credentials.name} --region ${var.aws_region} --query SecretString --output text"
 }
