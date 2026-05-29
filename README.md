@@ -1,6 +1,10 @@
+Main issue: extra nested ````markdown block and duplicate setup command at the end. Fixed version below. 
+
+````markdown
 # Complete RDS Password Rotation for Kubernetes
 
 This Terraform project creates everything from scratch:
+
 - VPC with public/private subnets
 - EKS cluster with node group
 - RDS MySQL instance
@@ -54,43 +58,31 @@ graph TB
     IAM -.->|Grants EventBridge Invoke Permission| EB
     IAM -.->|Creates IRSA Role| OIDC
     OIDC -.->|AssumeRoleWithWebIdentity| ESO
-
-    style EKS fill:#FF9900,stroke:#333,color:#fff
-    style RDS fill:#527FFF,stroke:#333,color:#fff
-    style Lambda fill:#FF9900,stroke:#333,color:#fff
-    style SSM fill:#527FFF,stroke:#333,color:#fff
-    style EB fill:#FF9900,stroke:#333,color:#fff
-    style K8SSecret fill:#7B68EE,stroke:#333,color:#fff
-```
+````
 
 ## Prerequisites
 
-- AWS account with credentials configured
-- Terraform installed
-- kubectl, helm, and AWS CLI (setup script included)
+* AWS account with credentials configured
+* Terraform installed
+* kubectl, Helm, and AWS CLI installed
 
-## Quick Setup
+## Deployment and Validation Guide
 
-````markdown
-# Deployment and Validation Guide
-
-## 1. Launch Ubuntu EC2 and Clone Repository
+### 1. Launch Ubuntu EC2 and Clone Repository
 
 ```bash
 git clone https://github.com/imagefactory-web/rds-password-rotation.git
 cd rds-password-rotation
 ```
 
-## 2. Install Required Tools
+### 2. Install Required Tools
 
 ```bash
-cd scripts
-chmod +x setup-k8s-tools.sh
-./setup-k8s-tools.sh
-cd ..
+chmod +x scripts/setup-k8s-tools.sh
+./scripts/setup-k8s-tools.sh
 ```
 
-## 3. Verify Terraform Backend
+### 3. Verify Terraform Backend
 
 Before running Terraform, check `provider.tf` and update the backend with your S3 bucket and region.
 
@@ -102,7 +94,7 @@ backend "s3" {
 }
 ```
 
-## 4. Deploy AWS Infrastructure
+### 4. Deploy AWS Infrastructure
 
 ```bash
 terraform init
@@ -121,9 +113,9 @@ ssm_parameter_path
 external_secrets_role_arn
 ```
 
-## 5. Update kubeconfig
+### 5. Update kubeconfig
 
-Replace the cluster name and region from your Terraform output.
+Replace the cluster name and region with values from your Terraform output.
 
 ```bash
 aws eks update-kubeconfig \
@@ -137,41 +129,23 @@ Verify cluster connectivity:
 kubectl get nodes
 ```
 
-## 6. Deploy Kubernetes Components
+### 6. Deploy Kubernetes Components
 
 ```bash
 cd k8s
-```
-
-Update the backend in the Kubernetes Terraform configuration with your S3 bucket and region.
-
-```hcl
-backend "s3" {
-  bucket = "your-terraform-state-bucket"
-  key    = "k8s-state.tfstate"
-  region = "ap-south-2"
-}
-```
-
-Run:
-
-```bash
 terraform init
 terraform plan
 terraform apply --auto-approve
 ```
 
-## 7. Verify Kubernetes Secret
+### 7. Verify Kubernetes Secret
 
 ```bash
 kubectl get secret rds-credentials -n applications
-```
-
-```bash
 kubectl describe secret rds-credentials -n applications
 ```
 
-## 8. Check Current RDS Password in SSM
+### 8. Check Current RDS Password in SSM
 
 ```bash
 aws ssm get-parameter \
@@ -188,7 +162,7 @@ Version
 LastModifiedDate
 ```
 
-## 9. Invoke Lambda for Password Rotation
+### 9. Invoke Lambda for Password Rotation
 
 ```bash
 aws lambda invoke \
@@ -214,7 +188,7 @@ Expected response:
 }
 ```
 
-## 10. Verify Updated Password in SSM
+### 10. Verify Updated Password in SSM
 
 ```bash
 aws ssm get-parameter \
@@ -231,7 +205,7 @@ LastModifiedDate should update
 Password value should change
 ```
 
-## 11. Verify RDS Status
+### 11. Verify RDS Status
 
 ```bash
 aws rds describe-db-instances \
@@ -246,9 +220,7 @@ Expected output:
 available
 ```
 
-## 12. Test MySQL Connectivity from EKS
-
-Launch a temporary MySQL client pod:
+### 12. Test MySQL Connectivity from EKS
 
 ```bash
 kubectl run mysql-client -it --rm \
@@ -273,35 +245,21 @@ Run inside MySQL:
 ```sql
 SELECT USER();
 SHOW DATABASES;
-```
-
-Exit:
-
-```sql
 exit;
 ```
 
-## 13. Verify External Secrets Sync
+### 13. Verify External Secrets Sync
 
 ```bash
 kubectl get externalsecrets -A
-```
-
-```bash
 kubectl describe externalsecret rds-credentials -n applications
-```
-
-```bash
 kubectl get secret rds-credentials -n applications
 ```
 
-## 14. Verify Application Restart by Reloader
+### 14. Verify Application Restart by Reloader
 
 ```bash
 kubectl get deployments -n applications
-```
-
-```bash
 kubectl get pods -n applications
 ```
 
@@ -324,8 +282,5 @@ Stakater Reloader restarts application pod
     ↓
 Application uses new password
 ```
-````
-
-```bash
-chmod +x scripts/setup-k8s-tools.sh
-./scripts/setup-k8s-tools.sh
+```
+```
