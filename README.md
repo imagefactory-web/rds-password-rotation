@@ -76,7 +76,7 @@ Paste this directly into `README.md`:
 ````markdown
 # Deployment and Validation Guide
 
-## 1. Launch EC2 and Clone Repository
+## 1. Launch Ubuntu EC2 and Clone Repository
 
 ```bash
 git clone https://github.com/imagefactory-web/rds-password-rotation.git
