@@ -58,7 +58,14 @@ graph TB
     IAM -.->|Grants EventBridge Invoke Permission| EB
     IAM -.->|Creates IRSA Role| OIDC
     OIDC -.->|AssumeRoleWithWebIdentity| ESO
-````
+
+    style EKS fill:#FF9900,stroke:#333,color:#fff
+    style RDS fill:#527FFF,stroke:#333,color:#fff
+    style Lambda fill:#FF9900,stroke:#333,color:#fff
+    style SSM fill:#527FFF,stroke:#333,color:#fff
+    style EB fill:#FF9900,stroke:#333,color:#fff
+    style K8SSecret fill:#7B68EE,stroke:#333,color:#fff
+```
 
 ## Prerequisites
 
