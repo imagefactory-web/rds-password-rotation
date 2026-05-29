@@ -71,8 +71,6 @@ graph TB
 
 ## Quick Setup
 
-Paste this directly into `README.md`:
-
 ````markdown
 # Deployment and Validation Guide
 
