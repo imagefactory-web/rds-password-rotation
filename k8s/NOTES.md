@@ -1,46 +1,7 @@
-# RDS Password Rotation on Kubernetes - Class Notes
-
-## Project Objective
-
-This project demonstrates how to automatically rotate an RDS MySQL password and propagate the updated password to Kubernetes applications without manual intervention.
-
-### Traditional Approach
-
-```text
-DBA Changes Password
-        ↓
-DevOps Updates Secret
-        ↓
-Restart Application
-        ↓
-Application Uses New Password
-```
-
-### Automated Approach
-
-```text
-EventBridge
-        ↓
-Lambda
-        ↓
-RDS Password Rotation
-        ↓
-SSM Parameter Store
-        ↓
-External Secrets Operator
-        ↓
-Kubernetes Secret
-        ↓
-Stakater Reloader
-        ↓
-Application Restart
-        ↓
-Application Uses New Password
-```
-
+# RDS Password Rotation on Kubernetes - Class K8s Folder
 ---
 
-# Project Components
+# K8s Folder Components
 
 ## providers.tf
 
