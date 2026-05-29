@@ -1,10 +1,6 @@
-Main issue: extra nested ````markdown block and duplicate setup command at the end. Fixed version below. 
-
-````markdown
 # Complete RDS Password Rotation for Kubernetes
 
 This Terraform project creates everything from scratch:
-
 - VPC with public/private subnets
 - EKS cluster with node group
 - RDS MySQL instance
