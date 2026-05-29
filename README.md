@@ -71,7 +71,262 @@ graph TB
 
 ## Quick Setup
 
-### 1. Install prerequisites
+Paste this directly into `README.md`:
+
+````markdown
+# Deployment and Validation Guide
+
+## 1. Launch EC2 and Clone Repository
+
+```bash
+git clone https://github.com/imagefactory-web/rds-password-rotation.git
+cd rds-password-rotation
+```
+
+## 2. Install Required Tools
+
+```bash
+cd scripts
+chmod +x setup-k8s-tools.sh
+./setup-k8s-tools.sh
+cd ..
+```
+
+## 3. Verify Terraform Backend
+
+Before running Terraform, check `provider.tf` and update the backend with your S3 bucket and region.
+
+```hcl
+backend "s3" {
+  bucket = "your-terraform-state-bucket"
+  key    = "state.tfstate"
+  region = "ap-south-2"
+}
+```
+
+## 4. Deploy AWS Infrastructure
+
+```bash
+terraform init
+terraform plan
+terraform apply --auto-approve
+```
+
+After successful apply, Terraform will print outputs such as:
+
+```text
+cluster_name
+cluster_endpoint
+lambda_function_name
+rds_endpoint
+ssm_parameter_path
+external_secrets_role_arn
+```
+
+## 5. Update kubeconfig
+
+Replace the cluster name and region from your Terraform output.
+
+```bash
+aws eks update-kubeconfig \
+  --name myapp-5u975y \
+  --region ap-south-2
+```
+
+Verify cluster connectivity:
+
+```bash
+kubectl get nodes
+```
+
+## 6. Deploy Kubernetes Components
+
+```bash
+cd k8s
+```
+
+Update the backend in the Kubernetes Terraform configuration with your S3 bucket and region.
+
+```hcl
+backend "s3" {
+  bucket = "your-terraform-state-bucket"
+  key    = "k8s-state.tfstate"
+  region = "ap-south-2"
+}
+```
+
+Run:
+
+```bash
+terraform init
+terraform plan
+terraform apply --auto-approve
+```
+
+## 7. Verify Kubernetes Secret
+
+```bash
+kubectl get secret rds-credentials -n applications
+```
+
+```bash
+kubectl describe secret rds-credentials -n applications
+```
+
+## 8. Check Current RDS Password in SSM
+
+```bash
+aws ssm get-parameter \
+  --name "/myapp/rds-password" \
+  --with-decryption \
+  --region ap-south-2
+```
+
+Note these values before rotation:
+
+```text
+Value
+Version
+LastModifiedDate
+```
+
+## 9. Invoke Lambda for Password Rotation
+
+```bash
+aws lambda invoke \
+  --function-name myapp-password-rotation \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{}' \
+  --region ap-south-2 \
+  response.json
+```
+
+Check Lambda response:
+
+```bash
+cat response.json
+```
+
+Expected response:
+
+```json
+{
+  "statusCode": 200,
+  "body": "{\"message\":\"Password rotation completed successfully\"}"
+}
+```
+
+## 10. Verify Updated Password in SSM
+
+```bash
+aws ssm get-parameter \
+  --name "/myapp/rds-password" \
+  --with-decryption \
+  --region ap-south-2
+```
+
+Validate:
+
+```text
+Version number should increase
+LastModifiedDate should update
+Password value should change
+```
+
+## 11. Verify RDS Status
+
+```bash
+aws rds describe-db-instances \
+  --db-instance-identifier myapp-database \
+  --region ap-south-2 \
+  --query "DBInstances[0].DBInstanceStatus"
+```
+
+Expected output:
+
+```text
+available
+```
+
+## 12. Test MySQL Connectivity from EKS
+
+Launch a temporary MySQL client pod:
+
+```bash
+kubectl run mysql-client -it --rm \
+  --image=mysql:8 \
+  --restart=Never \
+  -- mysql \
+  -h myapp-database.clme62qos4zc.ap-south-2.rds.amazonaws.com \
+  -u admin \
+  -p
+```
+
+Enter the latest password from SSM.
+
+Expected output:
+
+```text
+Welcome to the MySQL monitor.
+```
+
+Run inside MySQL:
+
+```sql
+SELECT USER();
+SHOW DATABASES;
+```
+
+Exit:
+
+```sql
+exit;
+```
+
+## 13. Verify External Secrets Sync
+
+```bash
+kubectl get externalsecrets -A
+```
+
+```bash
+kubectl describe externalsecret rds-credentials -n applications
+```
+
+```bash
+kubectl get secret rds-credentials -n applications
+```
+
+## 14. Verify Application Restart by Reloader
+
+```bash
+kubectl get deployments -n applications
+```
+
+```bash
+kubectl get pods -n applications
+```
+
+Reloader should restart the application pod after the Kubernetes secret is updated.
+
+## End-to-End Flow
+
+```text
+Lambda invoked
+    ↓
+RDS password rotated
+    ↓
+SSM Parameter Store updated
+    ↓
+External Secrets Operator syncs secret
+    ↓
+Kubernetes Secret updated
+    ↓
+Stakater Reloader restarts application pod
+    ↓
+Application uses new password
+```
+````
 
 ```bash
 chmod +x scripts/setup-k8s-tools.sh
