@@ -1,5 +1,30 @@
+You want raw `.md` content. Copy this directly into `NOTES.md`.
+
 ````markdown
-# RDS Password Rotation on Kubernetes - Notes 
+# RDS Password Rotation on Kubernetes - Training Notes
+
+## Architecture Overview
+
+```text
+EventBridge Scheduler
+        ↓
+Lambda Function
+        ↓
+RDS Password Rotation
+        ↓
+AWS SSM Parameter Store
+        ↓
+External Secrets Operator
+        ↓
+Kubernetes Secret
+        ↓
+Stakater Reloader
+        ↓
+Application Restart
+        ↓
+Application Uses New Password
+```
+
 ---
 
 # providers.tf
@@ -524,3 +549,21 @@ Controls how frequently External Secrets Operator checks for updated values.
 
 ---
 
+### What happens when password rotates?
+
+```text
+Lambda
+ ↓
+RDS Password Updated
+ ↓
+SSM Updated
+ ↓
+ESO Sync
+ ↓
+Kubernetes Secret Updated
+ ↓
+Reloader Restart
+ ↓
+Application Uses New Password
+```
+````
